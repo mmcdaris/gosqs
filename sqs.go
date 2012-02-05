@@ -136,7 +136,10 @@ func buildError(r *http.Response) error {
 	err := Error{}
 	err.StatusCode = r.StatusCode
 	err.StatusMsg = r.Status
-  body, _ := ioutil.ReadAll(r.Body)
+  body, errRead := ioutil.ReadAll(r.Body)
+  if(errRead != nil) {
+    return errRead
+  }
 	xml.Unmarshal(body, &err)
 	return &err
 }
@@ -157,7 +160,14 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	if r.StatusCode != 200 {
 		return buildError(r)
 	}
-  body, _ := ioutil.ReadAll(r.Body)
+  fmt.Println("doRequest")
+  body, err := ioutil.ReadAll(r.Body)
+  fmt.Println("Body: %80s", body)
+	if err != nil {
+    fmt.Println("Err: %80s", err)
+		return err
+	}
+
 	return xml.Unmarshal(body, resp)
 }
 

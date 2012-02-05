@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=github.com/iron-io/gosqs
+TARG=github.com/usiegj00/gosqs
 
 GOFILES=\
 	sqs.go\
