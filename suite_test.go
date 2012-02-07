@@ -3,7 +3,8 @@ package sqs
 import (
 	"flag"
 	. "launchpad.net/gocheck"
-	"launchpad.net/goamz/aws"
+	// "launchpad.net/goamz/aws"
+	"github.com/usiegj00/goamz-aws"
 	"testing"
 )
 

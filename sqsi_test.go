@@ -2,7 +2,8 @@ package sqs
 
 import (
 	"fmt"
-	"launchpad.net/goamz/aws"
+	// "launchpad.net/goamz/aws"
+	"github.com/usiegj00/goamz-aws"
 	. "launchpad.net/gocheck"
 )
 
