@@ -161,9 +161,9 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	if r.StatusCode != 200 {
 		return buildError(r)
 	}
-  fmt.Println("doRequest")
+  // fmt.Println("doRequest")
   body, err := ioutil.ReadAll(r.Body)
-  fmt.Println("Body: %80s", body)
+  // fmt.Println("Body: %80s", body)
 	if err != nil {
     fmt.Println("Err: %80s", err)
 		return err
