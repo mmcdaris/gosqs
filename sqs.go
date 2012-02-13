@@ -120,7 +120,7 @@ func (sqs *SQS) newRequest(method, action, url_ string, params url.Values) (*htt
 }
 
 // Error encapsulates an error returned by SDB.
-type Error struct {
+type SqsError struct {
 	StatusCode int    // HTTP status code (200, 403, ...)
 	StatusMsg  string // HTTP status message ("Service Unavailable", "Bad Request", ...)
 	Type       string // Whether the error was a receiver or sender error
@@ -129,20 +129,21 @@ type Error struct {
 	RequestId  string // A unique ID for this request
 }
 
-func (err *Error) Error() string {
+func (err *SqsError) String() string {
 	return err.Message
 }
 
-func buildError(r *http.Response) error {
-	err := Error{}
-	err.StatusCode = r.StatusCode
-	err.StatusMsg = r.Status
-  body, errRead := ioutil.ReadAll(r.Body)
-  if(errRead != nil) {
-    return errRead
+func buildError(r *http.Response) (sqsError SqsError, err error) {
+	sqsError = SqsError{}
+	sqsError.StatusCode = r.StatusCode
+	sqsError.StatusMsg = r.Status
+  body, err := ioutil.ReadAll(r.Body)
+  fmt.Printf("buildError::body: %v", body)
+  if(err != nil) {
+    return
   }
-	xml.Unmarshal(body, &err)
-	return &err
+	xml.Unmarshal(body, &sqsError)
+	return
 }
 
 func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
@@ -155,15 +156,16 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	}
 
 	defer r.Body.Close()
-	/*str, _ := http.DumpResponse(r, true)
-	fmt.Printf("response text: %s\n", str)
-	fmt.Printf("response struct: %+v\n", resp)*/
+	// str, _ := http.DumpResponse(r, true)
+	// fmt.Printf("response text: %s\n", str)
+	fmt.Printf("response struct: %+v\n", resp)
 	if r.StatusCode != 200 {
-		return buildError(r)
+		_, err := buildError(r)
+    return err
 	}
-  fmt.Println("doRequest")
+  fmt.Println("doRequest v1")
   body, err := ioutil.ReadAll(r.Body)
-  fmt.Println("Body: %80s", body)
+  fmt.Println("Body: %80v", body)
 	if err != nil {
     fmt.Println("Err: %80s", err)
 		return err
