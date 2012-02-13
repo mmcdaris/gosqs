@@ -12,7 +12,7 @@ package sqs
 import (
 	"encoding/xml"
 	"fmt"
-	_ "bytes"
+	// "bytes"
 	"io/ioutil"
 	// "launchpad.net/goamz/aws"
 	"github.com/usiegj00/goamz-aws"
@@ -279,12 +279,20 @@ func (q *Queue) DeleteMessage() error {
 	return nil
 }
 
+/*
+<GetQueueAttributesResponse xmlns="http://queue.amazonaws.com/doc/2009-02-01/"><GetQueueAttributesResult><Attribute><Name>ApproximateNumberOfMessages</Name><Value>1</Value></Attribute></GetQueueAttributesResult><ResponseMetadata><RequestId>766ee54d-c531-4980-90cc-938ff3466e1b</RequestId></ResponseMetadata></GetQueueAttributesResponse>
+
+Body: <?xml version="1.0"?>
+<ReceiveMessageResponse xmlns="http://queue.amazonaws.com/doc/2009-02-01/"><ReceiveMessageResult></ReceiveMessageResult><ResponseMetadata><RequestId>29faed75-f44b-4424-a3dd-1beb1439c13a</RequestId></ResponseMetadata></ReceiveMessageResponse>
+
+*/
+
 type QueueAttributes struct {
+  Id    string `xml:"ResponseMetadata>RequestId"`
 	Attributes []struct {
 		Name  string
 		Value string
-	}
-	ResponseMetadata
+	} `xml:"GetQueueAttributesResult>Attribute"`
 }
 
 // GetQueueAttributes returns one or all attributes of a queue.
