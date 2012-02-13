@@ -12,10 +12,12 @@ package sqs
 import (
 	"encoding/xml"
 	"fmt"
+	_ "bytes"
 	"io/ioutil"
 	// "launchpad.net/goamz/aws"
 	"github.com/usiegj00/goamz-aws"
 	"net/http"
+  _ "net/http/httputil"
 	"net/url"
 	"path"
 	"strconv"
@@ -138,7 +140,8 @@ func buildError(r *http.Response) (sqsError SqsError, err error) {
 	sqsError.StatusCode = r.StatusCode
 	sqsError.StatusMsg = r.Status
   body, err := ioutil.ReadAll(r.Body)
-  fmt.Printf("buildError::body: %v", body)
+  // str := bytes.NewBuffer(body)
+  // fmt.Printf("buildError::body: %s", str.String())
   if(err != nil) {
     return
   }
@@ -147,8 +150,8 @@ func buildError(r *http.Response) (sqsError SqsError, err error) {
 }
 
 func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
-	/*dump, _ := http.DumpRequest(req, true)
-	println("req DUMP:\n", string(dump))*/
+	// dump, _ := httputil.DumpRequest(req, true)
+	// println("req DUMP:\n", string(dump))
 
 	r, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -158,16 +161,17 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	defer r.Body.Close()
 	// str, _ := http.DumpResponse(r, true)
 	// fmt.Printf("response text: %s\n", str)
-	fmt.Printf("response struct: %+v\n", resp)
+	// fmt.Printf("response struct: %+v\n", resp)
 	if r.StatusCode != 200 {
 		_, err := buildError(r)
     return err
 	}
-  fmt.Println("doRequest v1")
+  // fmt.Println("doRequest v1")
   body, err := ioutil.ReadAll(r.Body)
-  fmt.Println("Body: %80v", body)
+  // str := bytes.NewBuffer(body)
+  // fmt.Printf("Body: %80v\n", str.String())
 	if err != nil {
-    fmt.Println("Err: %80s", err)
+    // fmt.Printf("Err: %80s\n", err)
 		return err
 	}
 
@@ -289,7 +293,8 @@ type QueueAttributes struct {
 func (q *Queue) GetQueueAttributes(attrs ...Attribute) (*QueueAttributes, error) {
 	params := url.Values{}
 	for i, attr := range attrs {
-		key := fmt.Sprintf("Attribute.%d", i)
+    // AttributeName.1=All
+		key := fmt.Sprintf("AttributeName.%d", i+1)
 		params[key] = []string{string(attr)}
 	}
 	var resp QueueAttributes
