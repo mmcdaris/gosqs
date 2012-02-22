@@ -106,7 +106,7 @@ func (sqs *SQS) ListQueues(namePrefix string) ([]*Queue, error) {
 }
 
 func (sqs *SQS) newRequest(method, action, url_ string, params url.Values) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url_, nil)
+	req, err := http.NewRequest(method, url_, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	return xml.Unmarshal(body, resp)
 }
 
-func (sqs *SQS) post(action, path string, params url.Values, body []byte, resp interface{}) error {
+func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) error {
 	endpoint := strings.Replace(sqs.Region.EC2Endpoint, "ec2", "sqs", 1) + path
 	req, err := sqs.newRequest("POST", action, endpoint, params)
 	if err != nil {
@@ -356,7 +356,7 @@ func (q *Queue) SendMessage(body string) (string, error) {
     }
   } else {
     // str := bytes.NewBuffer(body)
-    if err := q.post("SendMessage", q.path, url.Values{}, []byte(body), &resp); err != nil {
+    if err := q.post("SendMessage", q.path, params, &resp); err != nil {
       return "", err
     }
   }
