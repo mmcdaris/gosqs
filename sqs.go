@@ -349,9 +349,17 @@ func (q *Queue) SendMessage(body string) (string, error) {
 		"MessageBody": []string{body},
 	}
 	var resp sendMessageResponse
-	if err := q.get("SendMessage", q.path, params, &resp); err != nil {
-		return "", err
-	}
+  // Gets failed with messages over ~20k (see the doc/example3.xml same as doc/example.xml but bigger. Fails as get)
+  if false {
+    if err := q.get("SendMessage", q.path, params, &resp); err != nil {
+      return "", err
+    }
+  } else {
+    // str := bytes.NewBuffer(body)
+    if err := q.post("SendMessage", q.path, url.Values{}, []byte(body), &resp); err != nil {
+      return "", err
+    }
+  }
 	return resp.Id, nil
 }
 
