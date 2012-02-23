@@ -12,7 +12,8 @@ package sqs
 import (
 	"encoding/xml"
 	"fmt"
-	// "bytes"
+	"errors"
+	"bytes"
 	"io/ioutil"
 	// "launchpad.net/goamz/aws"
 	"github.com/usiegj00/goamz-aws"
@@ -24,6 +25,8 @@ import (
 	"strings"
 	"time"
 )
+
+const DEBUG=false
 
 // The SQS type encapsulates operations with a specific SQS region.
 type SQS struct {
@@ -140,12 +143,17 @@ func buildError(r *http.Response) (sqsError SqsError, err error) {
 	sqsError.StatusCode = r.StatusCode
 	sqsError.StatusMsg = r.Status
   body, err := ioutil.ReadAll(r.Body)
-  // str := bytes.NewBuffer(body)
-  // fmt.Printf("buildError::body: %s", str.String())
+
+  str := bytes.NewBuffer(body)
+  if DEBUG {
+    fmt.Printf("buildError::body: %s", str.String())
+  }
+
   if(err != nil) {
     return
   }
 	xml.Unmarshal(body, &sqsError)
+  err = errors.New("SQS Error")
 	return
 }
 
@@ -166,10 +174,16 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 		_, err := buildError(r)
     return err
 	}
-  // fmt.Println("doRequest v1")
+
+  //fmt.Println("doRequest v4")
+
   body, err := ioutil.ReadAll(r.Body)
-  // str := bytes.NewBuffer(body)
-  // fmt.Printf("Body: %80v\n", str.String())
+
+  if DEBUG {
+    str := bytes.NewBuffer(body)
+    fmt.Printf("Body: %80v\n", str.String())
+  }
+
 	if err != nil {
     // fmt.Printf("Err: %80s\n", err)
 		return err
@@ -184,11 +198,18 @@ func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) e
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	encodedParams := params.Encode()
 	req.Body = ioutil.NopCloser(strings.NewReader(encodedParams))
 	req.ContentLength = int64(len(encodedParams))
+
+  if DEBUG {
+    fmt.Printf("--------------------------------------\n")
+    fmt.Printf("%v\n", req)
+    fmt.Printf("%s\n", req.Body)
+    fmt.Printf("--------------------------------------\n")
+  }
 
 	return sqs.doRequest(req, resp)
 }
@@ -357,9 +378,11 @@ func (q *Queue) SendMessage(body string) (string, error) {
   } else {
     // str := bytes.NewBuffer(body)
     if err := q.post("SendMessage", q.path, params, &resp); err != nil {
+      // fmt.Printf("Error from SendMessage.\n")
       return "", err
     }
   }
+  // fmt.Printf("%s\n", resp)
 	return resp.Id, nil
 }
 
