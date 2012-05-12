@@ -145,7 +145,7 @@ func buildError(r *http.Response) (sqsError SqsError, err error) {
   body, err := ioutil.ReadAll(r.Body)
 
   str := bytes.NewBuffer(body)
-  if DEBUG {
+  if true { // DEBUG {
     fmt.Printf("buildError::body: %s", str.String())
   }
 
@@ -172,6 +172,7 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	// fmt.Printf("response struct: %+v\n", resp)
 	if r.StatusCode != 200 {
 		_, err := buildError(r)
+    fmt.Println("sqs.doRequest: Error", r)
     return err
 	}
 
@@ -378,7 +379,7 @@ func (q *Queue) SendMessage(body string) (string, error) {
   } else {
     // str := bytes.NewBuffer(body)
     if err := q.post("SendMessage", q.path, params, &resp); err != nil {
-      // fmt.Printf("Error from SendMessage.\n")
+      fmt.Printf("Error from SendMessage.\n")
       return "", err
     }
   }
