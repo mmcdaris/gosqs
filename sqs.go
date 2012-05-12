@@ -66,7 +66,7 @@ type ResponseMetadata struct {
 	RequestId string
 }
 
-func (sqs *SQS) Queue(name string) (*Queue, error) {
+func (sqs *SQS) Queue(name string) (q*Queue, err * SqsError) {
 	qs, err := sqs.ListQueues(name)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (sqs *SQS) Queue(name string) (*Queue, error) {
 		}
 	}
 	// TODO: return error
-	return nil, nil
+	return nil, &SqsError{errors.New("Did not find the queue."),0,"","","","",""}
 }
 
 type listQueuesResponse struct {
@@ -88,20 +88,20 @@ type listQueuesResponse struct {
 // ListQueues returns a list of your queues.
 //
 // See http://goo.gl/q1ue9 for more details.
-func (sqs *SQS) ListQueues(namePrefix string) ([]*Queue, error) {
+func (sqs *SQS) ListQueues(namePrefix string) (q[]*Queue, err * SqsError) {
 	params := url.Values{}
 	if namePrefix != "" {
 		params.Set("QueueNamePrefix", namePrefix)
 	}
 	var resp listQueuesResponse
-	if err := sqs.get("ListQueues", "/", params, &resp); err != nil {
+	if err = sqs.get("ListQueues", "/", params, &resp); err != nil {
 		return nil, err
 	}
 	queues := make([]*Queue, len(resp.Queues))
 	for i, queue := range resp.Queues {
-		u, err := url.Parse(queue)
-		if err != nil {
-			return nil, err
+		u, e := url.Parse(queue)
+		if e != nil {
+			return nil, &SqsError{e,0,"","","","",""}
 		}
 		queues[i] = &Queue{sqs, u.Path}
 	}
@@ -126,6 +126,7 @@ func (sqs *SQS) newRequest(method, action, url_ string, params url.Values) (*htt
 
 // Error encapsulates an error returned by SDB.
 type SqsError struct {
+	Error      error  // The proper error
 	StatusCode int    // HTTP status code (200, 403, ...)
 	StatusMsg  string // HTTP status message ("Service Unavailable", "Bad Request", ...)
 	Type       string // Whether the error was a receiver or sender error
@@ -138,11 +139,15 @@ func (err *SqsError) String() string {
 	return err.Message
 }
 
-func buildError(r *http.Response) (sqsError SqsError, err error) {
-	sqsError = SqsError{}
+func buildError(r *http.Response) (sqsError * SqsError) {
+	sqsError = &SqsError{}
 	sqsError.StatusCode = r.StatusCode
 	sqsError.StatusMsg = r.Status
   body, err := ioutil.ReadAll(r.Body)
+  if(err != nil) {
+    sqsError.Error = err
+    return
+  }
 
   str := bytes.NewBuffer(body)
   if true { // DEBUG {
@@ -150,20 +155,20 @@ func buildError(r *http.Response) (sqsError SqsError, err error) {
   }
 
   if(err != nil) {
+    sqsError.Error = err
     return
   }
 	xml.Unmarshal(body, &sqsError)
-  err = errors.New("SQS Error")
 	return
 }
 
-func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
+func (sqs *SQS) doRequest(req *http.Request, resp interface{}) (err * SqsError) {
 	// dump, _ := httputil.DumpRequest(req, true)
 	// println("req DUMP:\n", string(dump))
 
-	r, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
+	r, e := http.DefaultClient.Do(req)
+	if e != nil {
+		return &SqsError{e,0,"","","","",""}
 	}
 
 	defer r.Body.Close()
@@ -171,33 +176,37 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) error {
 	// fmt.Printf("response text: %s\n", str)
 	// fmt.Printf("response struct: %+v\n", resp)
 	if r.StatusCode != 200 {
-		_, err := buildError(r)
+		err = buildError(r)
     fmt.Println("sqs.doRequest: Error", r)
     return err
 	}
 
   //fmt.Println("doRequest v4")
 
-  body, err := ioutil.ReadAll(r.Body)
+  body, e := ioutil.ReadAll(r.Body)
 
   if DEBUG {
     str := bytes.NewBuffer(body)
     fmt.Printf("Body: %80v\n", str.String())
   }
 
-	if err != nil {
+	if e != nil {
     // fmt.Printf("Err: %80s\n", err)
-		return err
+		return &SqsError{e,0,"","","","",""}
 	}
 
-	return xml.Unmarshal(body, resp)
+	e = xml.Unmarshal(body, resp)
+  if e != nil {
+    return &SqsError{e,0,"","","","",""}
+  }
+  return nil
 }
 
-func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) error {
+func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (err *SqsError) {
 	endpoint := strings.Replace(sqs.Region.EC2Endpoint, "ec2", "sqs", 1) + path
-	req, err := sqs.newRequest("POST", action, endpoint, params)
-	if err != nil {
-		return err
+	req, e := sqs.newRequest("POST", action, endpoint, params)
+	if e != nil {
+		return &SqsError{e,0,"","","","",""}
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -215,14 +224,14 @@ func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) e
 	return sqs.doRequest(req, resp)
 }
 
-func (sqs *SQS) get(action, path string, params url.Values, resp interface{}) error {
+func (sqs *SQS) get(action, path string, params url.Values, resp interface{}) (err * SqsError) {
 	if params == nil {
 		params = url.Values{}
 	}
 	endpoint := strings.Replace(sqs.Region.EC2Endpoint, "ec2", "sqs", 1) + path
-	req, err := sqs.newRequest("GET", action, endpoint, params)
-	if err != nil {
-		return err
+	req, e := sqs.newRequest("GET", action, endpoint, params)
+	if e != nil {
+		return &SqsError{e,0,"","","","",""}
 	}
 
 	if len(params) > 0 {
@@ -253,6 +262,7 @@ func (q *Queue) ChangeMessageVisibility() error {
 
 type CreateQueueOpt struct {
 	DefaultVisibilityTimeout int
+	MaximumMessageSize       int
 }
 
 type createQueuesResponse struct {
@@ -263,21 +273,23 @@ type createQueuesResponse struct {
 // CreateQueue creates a new queue.
 //
 // See http://goo.gl/EwNUK for more details.
-func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (*Queue, error) {
+func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (q*Queue, err * SqsError) {
 	params := url.Values{
 		"QueueName": []string{name},
 	}
 	if opt != nil {
 		dvt := strconv.Itoa(opt.DefaultVisibilityTimeout)
 		params["DefaultVisibilityTimeout"] = []string{dvt}
+		mms := strconv.Itoa(opt.MaximumMessageSize)
+		params["MaximumMessageSize"]       = []string{mms}
 	}
 	var resp createQueuesResponse
 	if err := sqs.get("CreateQueue", "/", params, &resp); err != nil {
 		return nil, err
 	}
-	u, err := url.Parse(resp.QueueUrl)
-	if err != nil {
-		return nil, err
+	u, e := url.Parse(resp.QueueUrl)
+	if e != nil {
+		return nil, &SqsError{e,0,"","","","",""}
 	}
 	return &Queue{sqs, u.Path}, nil
 }
@@ -285,7 +297,7 @@ func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (*Queue, error) {
 // DeleteQueue deletes a queue.
 //
 // See http://goo.gl/zc45Q for more details.
-func (q *Queue) DeleteQueue() error {
+func (q *Queue) DeleteQueue() * SqsError {
 	params := url.Values{}
 	var resp ResponseMetadata
 	if err := q.SQS.get("DeleteQueue", q.path, params, &resp); err != nil {
@@ -320,7 +332,7 @@ type QueueAttributes struct {
 // GetQueueAttributes returns one or all attributes of a queue.
 //
 // See http://goo.gl/X01zD for more details.
-func (q *Queue) GetQueueAttributes(attrs ...Attribute) (*QueueAttributes, error) {
+func (q *Queue) GetQueueAttributes(attrs ...Attribute) (*QueueAttributes, *SqsError) {
 	params := url.Values{}
 	for i, attr := range attrs {
     // AttributeName.1=All
@@ -342,7 +354,7 @@ type Message struct {
 // ReceiveMessage retrieves one or more messages from the queue.
 //
 // See http://goo.gl/8RLI4 for more details.
-func (q *Queue) ReceiveMessage() (*Message, error) {
+func (q *Queue) ReceiveMessage() (*Message, *SqsError) {
 	var resp Message
 	if err := q.get("ReceiveMessage", q.path, nil, &resp); err != nil {
 		return nil, err
@@ -366,21 +378,21 @@ type sendMessageResponse struct {
 // It returns the sent message's ID.
 //
 // See http://goo.gl/ThjJG for more details.
-func (q *Queue) SendMessage(body string) (string, error) {
+func (q *Queue) SendMessage(body string) (sqsId string, err *SqsError) {
 	params := url.Values{
 		"MessageBody": []string{body},
 	}
 	var resp sendMessageResponse
   // Gets failed with messages over ~20k (see the doc/example3.xml same as doc/example.xml but bigger. Fails as get)
   if false {
-    if err := q.get("SendMessage", q.path, params, &resp); err != nil {
-      return "", err
+    if err = q.get("SendMessage", q.path, params, &resp); err != nil {
+      return
     }
   } else {
     // str := bytes.NewBuffer(body)
-    if err := q.post("SendMessage", q.path, params, &resp); err != nil {
+    if err = q.post("SendMessage", q.path, params, &resp); err != nil {
       fmt.Printf("Error from SendMessage.\n")
-      return "", err
+      return
     }
   }
   // fmt.Printf("%s\n", resp)
