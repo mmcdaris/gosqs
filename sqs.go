@@ -135,6 +135,10 @@ type SqsError struct {
 	RequestId  string // A unique ID for this request
 }
 
+func New() *SqsError {
+  return &SqsError{}
+}
+
 func (err * SqsError) String() string {
 	return err.Message
 }
