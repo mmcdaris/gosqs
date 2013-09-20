@@ -135,7 +135,7 @@ type SqsError struct {
 	RequestId  string // A unique ID for this request
 }
 
-func New() *SqsError {
+func NewSqsError() *SqsError {
   return &SqsError{}
 }
 
