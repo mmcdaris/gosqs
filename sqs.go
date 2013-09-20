@@ -66,7 +66,7 @@ type ResponseMetadata struct {
 	RequestId string
 }
 
-func (sqs *SQS) Queue(name string) (q*Queue, err * SqsError) {
+func (sqs *SQS) Queue(name string) (q*Queue, err *SqsError) {
 	qs, err := sqs.ListQueues(name)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ type listQueuesResponse struct {
 // ListQueues returns a list of your queues.
 //
 // See http://goo.gl/q1ue9 for more details.
-func (sqs *SQS) ListQueues(namePrefix string) (q[]*Queue, err * SqsError) {
+func (sqs *SQS) ListQueues(namePrefix string) (q[]*Queue, err *SqsError) {
 	params := url.Values{}
 	if namePrefix != "" {
 		params.Set("QueueNamePrefix", namePrefix)
@@ -139,7 +139,7 @@ func (err * SqsError) String() string {
 	return err.Message
 }
 
-func buildError(r *http.Response) (sqsError * SqsError) {
+func buildError(r *http.Response) (sqsError *SqsError) {
 	sqsError = &SqsError{}
 	sqsError.StatusCode = r.StatusCode
 	sqsError.StatusMsg = r.Status
@@ -162,7 +162,7 @@ func buildError(r *http.Response) (sqsError * SqsError) {
 	return
 }
 
-func (sqs *SQS) doRequest(req *http.Request, resp interface{}) (err * SqsError) {
+func (sqs *SQS) doRequest(req *http.Request, resp interface{}) (err *SqsError) {
 	// dump, _ := httputil.DumpRequest(req, true)
 	// println("req DUMP:\n", string(dump))
 
@@ -202,7 +202,7 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) (err * SqsError) 
   return nil
 }
 
-func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (err * SqsError) {
+func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (err *SqsError) {
 	endpoint := strings.Replace(sqs.Region.EC2Endpoint, "ec2", "sqs", 1) + path
 	req, e := sqs.newRequest("POST", action, endpoint, params)
 	if e != nil {
@@ -224,7 +224,7 @@ func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (
 	return sqs.doRequest(req, resp)
 }
 
-func (sqs *SQS) get(action, path string, params url.Values, resp interface{}) (err * SqsError) {
+func (sqs *SQS) get(action, path string, params url.Values, resp interface{}) (err *SqsError) {
 	if params == nil {
 		params = url.Values{}
 	}
@@ -273,7 +273,7 @@ type createQueuesResponse struct {
 // CreateQueue creates a new queue.
 //
 // See http://goo.gl/EwNUK for more details.
-func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (q*Queue, err * SqsError) {
+func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (q*Queue, err *SqsError) {
 	params := url.Values{
 		"QueueName": []string{name},
 	}
@@ -297,7 +297,7 @@ func (sqs *SQS) CreateQueue(name string, opt *CreateQueueOpt) (q*Queue, err * Sq
 // DeleteQueue deletes a queue.
 //
 // See http://goo.gl/zc45Q for more details.
-func (q *Queue) DeleteQueue() * SqsError {
+func (q *Queue) DeleteQueue() *SqsError {
 	params := url.Values{}
 	var resp ResponseMetadata
 	if err := q.SQS.get("DeleteQueue", q.path, params, &resp); err != nil {
@@ -378,7 +378,7 @@ type sendMessageResponse struct {
 // It returns the sent message's ID.
 //
 // See http://goo.gl/ThjJG for more details.
-func (q *Queue) SendMessage(body string) (sqsId string, err * SqsError) {
+func (q *Queue) SendMessage(body string) (sqsId string, err *SqsError) {
 	params := url.Values{
 		"MessageBody": []string{body},
 	}
@@ -396,7 +396,7 @@ func (q *Queue) SendMessage(body string) (sqsId string, err * SqsError) {
     }
   }
   // fmt.Printf("%s\n", resp)
-	return resp.Id, nil
+	return resp.Id, err
 }
 
 // SetQueueAttributes sets one attribute of a queue.
