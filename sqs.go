@@ -135,7 +135,7 @@ type SqsError struct {
 	RequestId  string // A unique ID for this request
 }
 
-func (err *SqsError) String() string {
+func (err * SqsError) String() string {
 	return err.Message
 }
 
@@ -202,7 +202,7 @@ func (sqs *SQS) doRequest(req *http.Request, resp interface{}) (err * SqsError) 
   return nil
 }
 
-func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (err *SqsError) {
+func (sqs *SQS) post(action, path string, params url.Values, resp interface{}) (err * SqsError) {
 	endpoint := strings.Replace(sqs.Region.EC2Endpoint, "ec2", "sqs", 1) + path
 	req, e := sqs.newRequest("POST", action, endpoint, params)
 	if e != nil {
@@ -378,7 +378,7 @@ type sendMessageResponse struct {
 // It returns the sent message's ID.
 //
 // See http://goo.gl/ThjJG for more details.
-func (q *Queue) SendMessage(body string) (sqsId string, err *SqsError) {
+func (q *Queue) SendMessage(body string) (sqsId string, err * SqsError) {
 	params := url.Values{
 		"MessageBody": []string{body},
 	}
